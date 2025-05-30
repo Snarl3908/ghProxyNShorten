@@ -1,146 +1,135 @@
-# gh-proxy
+# GitHub Proxy & Shortener
 
-## 我的修改
-[增加支持 api.github.com](https://zelikk.blogspot.com/2023/03/github-proxy-api-github-com.html)
+一个现代化的 GitHub 代理工具，帮助解决纯 IPv6 环境下访问 GitHub 资源的问题，并提供脚本命令转换功能。
 
-增加支持 git.io
-
-做了工具页面, 方便使用  
-https://ghproxy.crazypeace.workers.dev/
-
-其它演示站域名 (哪个能用就用哪个, 也许会被GFW屏蔽)  
-ghproxy.lvedong.eu.org  
-ghproxy.icdyct.space  
-ghproxy.icdyct.ggff.net  
-
-用法演示视频   
-https://youtu.be/F9re4Tuy7BA
-
-支持github脚本的无限嵌套调用 演示视频  
-https://youtu.be/5zCJsCoi_lQ
-
-在 Cloudflare 的 worker 上自建 Github 代理 教程  
-https://zelikk.blogspot.com/2023/06/gh-proxy-worker.html
-
-在 Replit 上自建 Github 代理 教程  
-https://zelikk.blogspot.com/2023/07/replit-gh-proxy.html
-
-处理嵌套github脚本的原理说明  
-https://zelikk.blogspot.com/search/label/ghproxy
-
-<details>
-    <summary>原项目readme (点击展开)</summary>
-  
 ## 简介
 
-github release、archive以及项目文件的加速项目，支持clone，有Cloudflare Workers无服务器版本以及Python版本
+GitHub Proxy & Shortener 是一个基于 Cloudflare Workers 的工具，用于解决以下问题：
 
-## 演示
+- 在纯 IPv6 的 VPS 上运行 GitHub 脚本时无法访问 GitHub 的问题
+- 需要通过代理访问 GitHub 资源的场景
+- 简化 GitHub 一键脚本的使用
 
-[https://gh.api.99988866.xyz/](https://gh.api.99988866.xyz/)
+本项目是对 [hunshcn/gh-proxy](https://github.com/hunshcn/gh-proxy) 的改进和扩展，增加了更友好的用户界面和更多功能支持。
 
-演示站为公共服务，如有大规模使用需求请自行部署，演示站有点不堪重负
+## 特性
 
-![imagea272c95887343279.png](https://img.maocdn.cn/img/2021/04/24/imagea272c95887343279.png)
+- **脚本命令转换**：将原始 GitHub 脚本命令转换为使用代理的版本
+  - 支持处理一层脚本中的 GitHub 资源
+  - 支持处理嵌套调用其它 GitHub 脚本的情况
+- **资源链接转换**：将 GitHub 资源链接转换为代理链接
+- **支持多种资源类型**：
+  - GitHub Releases 和 Archives
+  - Raw 文件内容
+  - Blob 文件
+  - Git 仓库 (支持 clone)
+  - Gist 文件
+  - API 请求 (api.github.com)
+  - Git.io 短链接
+- **现代化界面**：采用 Tailwind CSS 构建的简洁、响应式界面
 
-当然也欢迎[捐赠](#捐赠)以支持作者
+## 使用方法
 
-## python版本和cf worker版本差异
+### 脚本命令转换
 
-- python版本支持进行文件大小限制，超过设定返回原地址 [issue #8](https://github.com/hunshcn/gh-proxy/issues/8)
+1. 访问工具页面
+2. 输入原始的 GitHub 脚本命令，例如：
+   ```
+   bash <(curl -L https://github.com/crazypeace/warp.sh/raw/main/warp.sh) 4
+   ```
+3. 点击"转换脚本"按钮
+4. 根据需要选择合适的转换结果：
+   - 只处理一层脚本中 GitHub 资源
+   - 处理嵌套调用的情况
+5. 复制转换后的命令并在终端中执行
 
-- python版本支持特定user/repo 封禁/白名单 以及passby [issue #41](https://github.com/hunshcn/gh-proxy/issues/41)
+### 资源链接转换
 
-## 使用
+1. 访问工具页面
+2. 输入 GitHub 资源链接，例如：
+   ```
+   https://github.com/crazypeace/warp.sh/raw/main/warp.sh
+   ```
+3. 点击"转换资源"按钮
+4. 复制转换后的链接或直接点击"获取"按钮
 
-直接在copy出来的url前加`https://gh.api.99988866.xyz/`即可
+### 支持的脚本格式
 
-也可以直接访问，在input输入
+- `bash <(curl -L https://github.com/user/repo/raw/branch/file.sh) args`
+- `bash <(wget -qO- -o- https://git.io/xxxx)`
+- `wget -O file.sh "https://git.io/xxxx" && chmod +x file.sh && ./file.sh`
+- `wget -N --no-check-certificate https://raw.githubusercontent.com/user/repo/branch/file.sh && bash file.sh`
 
-***大量使用请自行部署，以上域名仅为演示使用。***
+### 高级参数
 
-访问私有仓库可以通过
+工具页面底部的"高级参数"部分允许您设置自定义的 GitHub 代理服务器 URL。这对于使用自己部署的代理服务器的用户很有用。
 
-`git clone https://user:TOKEN@ghproxy.com/https://github.com/xxxx/xxxx` [#71](https://github.com/hunshcn/gh-proxy/issues/71)
-
-以下都是合法输入（仅示例，文件不存在）：
-
-- 分支源码：https://github.com/hunshcn/project/archive/master.zip
-
-- release源码：https://github.com/hunshcn/project/archive/v0.1.0.tar.gz
-
-- release文件：https://github.com/hunshcn/project/releases/download/v0.1.0/example.zip
-
-- 分支文件：https://github.com/hunshcn/project/blob/master/filename
-
-- commit文件：https://github.com/hunshcn/project/blob/1111111111111111111111111111/filename
-
-- gist：https://gist.githubusercontent.com/cielpy/351557e6e465c12986419ac5a4dd2568/raw/cmd.py
-
-## cf worker版本部署
-
-首页：https://workers.cloudflare.com
-
-注册，登陆，`Start building`，取一个子域名，`Create a Worker`。
-
-复制 [index.js](https://cdn.jsdelivr.net/gh/hunshcn/gh-proxy@master/index.js)  到左侧代码框，`Save and deploy`。如果正常，右侧应显示首页。
-
-`ASSET_URL`是静态资源的url（实际上就是现在显示出来的那个输入框单页面）
-
-`PREFIX`是前缀，默认（根路径情况为"/"），如果自定义路由为example.com/gh/*，请将PREFIX改为 '/gh/'，注意，少一个杠都会错！
-
-## Python版本部署
-
-### Docker部署
+## 项目结构
 
 ```
-docker run -d --name="gh-proxy-py" \
-  -p 0.0.0.0:80:80 \
-  --restart=always \
-  hunsh/gh-proxy-py:latest
+.
+├── public/                 # 静态资源目录
+│   ├── index.html          # 主页面 HTML
+│   ├── main.js             # 客户端 JavaScript 逻辑
+│   └── styles.css          # 自定义样式表
+├── src/                    # 源代码目录
+│   └── index.js            # Worker 主逻辑代码
+├── wrangler.toml           # Cloudflare Workers 配置文件
+├── package.json            # 项目依赖配置
+├── webpack.config.js       # Webpack 配置
+├── LICENSE                 # 许可证文件
+└── README.md               # 项目说明文档
 ```
 
-第一个80是你要暴露出去的端口
+### 文件作用说明
 
-### 直接部署
+- **src/index.js**: 核心代理逻辑，处理请求转发、URL 重写等功能
+- **public/index.html**: 用户界面，提供脚本转换和链接转换功能
+- **public/main.js**: 处理用户交互和转换逻辑的客户端代码
+- **public/styles.css**: 自定义样式，补充 Tailwind CSS 框架
+- **wrangler.toml**: Cloudflare Workers 配置，定义部署参数
+- **package.json**: 定义项目依赖，主要是 @cloudflare/kv-asset-handler 用于处理静态资源
 
-安装依赖（请使用python3）
+## 部署指南
 
-```pip install flask requests```
+### 在 Cloudflare Workers 上部署
 
-按需求修改`app/main.py`的前几项配置
+1. 克隆本仓库
+   ```
+   git clone https://github.com/Snarl3908/ghProxyNShorten.git
+   cd ghProxyNShorten
+   ```
 
-*注意:* 可能需要在`return Response`前加两行
-```python3
-if 'Transfer-Encoding' in headers:
-    headers.pop('Transfer-Encoding')
-```
+2. 在 Cloudflare Workers 控制台导入部署
+   - 登录 [Cloudflare Workers 控制台](https://dash.cloudflare.com/?to=/:account/workers/overview)
+   - 点击"创建服务"或"Create a Service"
+   - 选择"从 Git 部署"选项
+   - 连接您的 GitHub 账户并选择本仓库
+   - 配置必要的设置（如项目名称等）
+   - 点击部署
 
-### 注意
+3. 或者使用 Wrangler CLI 部署
+   ```
+   npm install
+   npx wrangler deploy
+   ```
 
-python版本的机器如果无法正常访问github.io会启动报错，请自行修改静态文件url
+## 技术栈
 
-python版本默认走服务器（2021.3.27更新）
+- **前端**：HTML, CSS, JavaScript, Tailwind CSS
+- **后端**：Cloudflare Workers (JavaScript)
+- **构建工具**：Webpack
+- **依赖管理**：npm
 
-## Cloudflare Workers计费
+## 项目引用
 
-到 `overview` 页面可参看使用情况。免费版每天有 10 万次免费请求，并且有每分钟1000次请求的限制。
+本项目基于以下开源项目和技术：
 
-如果不够用，可升级到 $5 的高级版本，每月可用 1000 万次请求（超出部分 $0.5/百万次请求）。
+- [hunshcn/gh-proxy](https://github.com/hunshcn/gh-proxy) - 原始的 GitHub 代理项目
+- [Cloudflare Workers](https://workers.cloudflare.com/) - 无服务器计算平台
+- [Tailwind CSS](https://tailwindcss.com/) - 实用优先的 CSS 框架
+- [@cloudflare/kv-asset-handler](https://github.com/cloudflare/kv-asset-handler) - 用于 Workers Sites 的静态资源处理库
 
-## Changelog
+## 许可证
 
-* 2020.04.10 增加对`raw.githubusercontent.com`文件的支持
-* 2020.04.09 增加Python版本（使用Flask）
-* 2020.03.23 新增了clone的支持
-* 2020.03.22 初始版本
-
-## 链接
-
-[我的博客](https://hunsh.net)
-
-## 参考
-
-[jsproxy](https://github.com/EtherDream/jsproxy/)
-
-</details>
+本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件
