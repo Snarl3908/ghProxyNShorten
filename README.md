@@ -96,8 +96,8 @@ GitHub Proxy & Shortener 是一个基于 Cloudflare Workers 的工具，用于�
 
 1. 克隆本仓库
    ```
-   git clone https://github.com/Snarl3908/ghProxyNShorten.git
-   cd ghProxyNShorten
+   git clone https://github.com/Snarl3908/ghProxyNShortener.git
+   cd ghProxyNShortener
    ```
 
 2. 在 Cloudflare Workers 控制台导入部署
