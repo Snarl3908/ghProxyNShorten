@@ -1,7 +1,8 @@
 # 此文件仅作为项目结构参考
 # 在 Cloudflare Workers 控制台导入部署时，这些配置会在界面上设置
 name = "gh-proxy"
+main = "src/index.js"
+compatibility_date = "2025-05-30"
 
 [site]
 bucket = "./public"
-entry-point = "src/index.js"
