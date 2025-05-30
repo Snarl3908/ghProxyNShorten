@@ -1,0 +1,20 @@
+{
+  "name": "gh-proxy",
+  "version": "1.0.0",
+  "description": "GitHub proxy service with static site",
+  "main": "src/index.js",
+  "scripts": {
+    "build": "webpack",
+    "dev": "wrangler dev",
+    "publish": "wrangler publish"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@cloudflare/kv-asset-handler": "^0.3.0"
+  },
+  "devDependencies": {
+    "webpack": "^5.75.0",
+    "webpack-cli": "^5.0.1"
+  }
+}
