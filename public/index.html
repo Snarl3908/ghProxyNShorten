@@ -1,98 +1,147 @@
 <!DOCTYPE html>
-<html>
- <head> 
-  <meta http-equiv="content-type" content="txt/html; charset=utf-8" /> 
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" /> 
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous" /> 
-  
-  <title>转化github脚本为github代理的方式</title> 
-  <link rel="stylesheet" href="./styles.css" /> 
- </head> 
- <body> 
-  <div class="d-flex align-items-start flex-wrap">
-  <div class="card shadow m-3"> 
-   <h5 class="card-header">解决纯IPv6的VPS运行GitHub脚本时访问GitHub不通的问题</h5> 
-   <div class="card-body"> 
-    <h5 class="card-title"></h5> 
-    <p>本Github Proxy项目可处理形如下列的Github一键脚本命令:</p> 
-    <p class="font-monospace">bash <(curl -L https://github.com/crazypeace/warp.sh/raw/main/warp.sh) 4 </p> 
-    <p class="font-monospace">bash <(wget -qO- -o- https://git.io/v2ray.sh) </p> 
-    <p class="font-monospace">wget -O tcpx.sh "https://git.io/JYxKU" && chmod +x tcpx.sh && ./tcpx.sh </p> 
-    <p class="font-monospace">wget -N --no-check-certificate https://raw.githubusercontent.com/Misaka-blog/hysteria-install/main/hy2/hysteria.sh && bash hysteria.sh </p> 
-   </div> 
-   <div class="card-footer"> 
-    <span> <a href="https://github.com/crazypeace/gh-proxy/" target="_self">Fork me on GitHub</a> </span> 
-   </div> 
-  </div> 
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub 代理工具</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen">
+  <div class="container mx-auto px-4 py-8">
+    <header class="mb-8 text-center">
+      <h1 class="text-3xl font-bold text-indigo-600 dark:text-indigo-400">GitHub 代理工具</h1>
+      <p class="text-gray-600 dark:text-gray-400 mt-2">解决纯 IPv6 的 VPS 运行 GitHub 脚本时访问 GitHub 不通的问题</p>
+    </header>
 
-  <div class="card shadow m-3"> 
-   <h5 class="card-header">转换Github一键脚本命令</h5> 
-   <div class="card-body"> 
-    <h5 class="card-title"></h5> 
-    <label>输入你原本的GitHub脚本命令:</label> 
-    <div class="input-group mb-3"> 
-     <input type="text" class="form-control" id="githubScript" aria-describedby="basic-addon1" placeholder="例如 bash <(curl -L https://github.com/crazypeace/warp.sh/raw/main/warp.sh) 4" /> 
-    </div> 
-    <div class="input-group mb-3"> 
-     <button class="btn btn-primary" type="button" onclick="convertScript()" id="cvtBtn">转换脚本</button> 
-    </div> 
-    <p>以下为转换后的一键脚本命令, 请在命令行中执行</p> 
-    <label>只处理一层脚本中GitHub资源</label> 
-    <div class="input-group mb-3"> 
-     <input type="text" class="form-control" id="result2" aria-describedby="basic-addon2" onfocus="this.select()" /> 
-     <button class="btn btn-info" type="button" onclick="copyResult2()">复制</button> 
-    </div> 
-    <label>处理GitHub脚本里面嵌套调用了其它GitHub脚本</label> 
-    <div class="input-group mb-3"> 
-     <input type="text" class="form-control" id="result1" aria-describedby="basic-addon2" onfocus="this.select()" /> 
-     <button class="btn btn-info" type="button" onclick="copyResult1()">复制</button> 
-    </div> 
-   </div> 
-  </div> 
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- 脚本转换卡片 -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+        <div class="bg-indigo-600 dark:bg-indigo-700 text-white px-4 py-3">
+          <h2 class="text-xl font-semibold">转换 GitHub 一键脚本命令</h2>
+        </div>
+        <div class="p-4">
+          <div class="mb-4">
+            <label for="githubScript" class="block text-sm font-medium mb-1">输入你原本的 GitHub 脚本命令:</label>
+            <input type="text" id="githubScript" class="w-full px-3 py-2 border dark:border-gray-700 rounded-md dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" 
+              placeholder="例如 bash <(curl -L https://github.com/crazypeace/warp.sh/raw/main/warp.sh) 4">
+          </div>
+          
+          <button onclick="convertScript()" class="mb-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            转换脚本
+          </button>
+          
+          <p class="text-sm mb-2">以下为转换后的一键脚本命令，请在命令行中执行</p>
+          
+          <div class="mb-4">
+            <label class="block text-sm font-medium mb-1">只处理一层脚本中 GitHub 资源</label>
+            <div class="flex">
+              <input type="text" id="result2" class="flex-grow px-3 py-2 border dark:border-gray-700 rounded-l-md dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" onfocus="this.select()">
+              <button onclick="copyResult2()" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-r-md transition duration-200">
+                复制
+              </button>
+            </div>
+          </div>
+          
+          <div class="mb-2">
+            <label class="block text-sm font-medium mb-1">处理 GitHub 脚本里面嵌套调用了其它 GitHub 脚本</label>
+            <div class="flex">
+              <input type="text" id="result1" class="flex-grow px-3 py-2 border dark:border-gray-700 rounded-l-md dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" onfocus="this.select()">
+              <button onclick="copyResult1()" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-r-md transition duration-200">
+                复制
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
-  <div class="card shadow m-3"> 
-   <h5 class="card-header">简单转换Github网址</h5> 
-   <div class="card-body"> 
-    <h5 class="card-title"></h5> 
-    <label>输入GitHub资源链接</label> 
-    <div class="input-group mb-3"> 
-     <input type="text" class="form-control" id="githubRes" aria-describedby="basic-addon1" placeholder="例如 https://github.com/crazypeace/warp.sh/raw/main/warp.sh" /> 
-    </div> 
-    <div class="input-group mb-3"> 
-     <button class="btn btn-primary" type="button" onclick="convertRes()" id="cvtBtn">转换资源</button> 
-    </div> 
-    <label>以下为转换后的链接</label> 
-    <div class="input-group mb-3"> 
-     <input type="text" class="form-control" id="resAfterGhproxy" aria-describedby="basic-addon2" onfocus="this.select()" /> 
-     <button class="btn btn-info" type="button" onclick="fetchRes()">获取</button> 
-    </div> 
-   </div> 
-  </div> 
+      <!-- 网址转换卡片 -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+        <div class="bg-indigo-600 dark:bg-indigo-700 text-white px-4 py-3">
+          <h2 class="text-xl font-semibold">简单转换 GitHub 网址</h2>
+        </div>
+        <div class="p-4">
+          <div class="mb-4">
+            <label for="githubRes" class="block text-sm font-medium mb-1">输入 GitHub 资源链接</label>
+            <input type="text" id="githubRes" class="w-full px-3 py-2 border dark:border-gray-700 rounded-md dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" 
+              placeholder="例如 https://github.com/crazypeace/warp.sh/raw/main/warp.sh">
+          </div>
+          
+          <button onclick="convertRes()" class="mb-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            转换资源
+          </button>
+          
+          <div class="mb-2">
+            <label class="block text-sm font-medium mb-1">以下为转换后的链接</label>
+            <div class="flex">
+              <input type="text" id="resAfterGhproxy" class="flex-grow px-3 py-2 border dark:border-gray-700 rounded-l-md dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" onfocus="this.select()">
+              <button onclick="fetchRes()" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-r-md transition duration-200">
+                获取
+              </button>
+            </div>
+          </div>
+          
+          <div class="mt-6">
+            <label class="block text-sm font-medium mb-1">高级参数 (不懂就不要动)</label>
+            <div class="flex">
+              <span class="inline-flex items-center px-3 py-2 text-sm bg-gray-200 dark:bg-gray-700 border border-r-0 dark:border-gray-600 rounded-l-md">
+                GitHub Proxy
+              </span>
+              <input type="text" id="ghproxy" class="flex-grow px-3 py-2 border dark:border-gray-700 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" value="https://ghproxy.crazypeace.workers.dev/">
+              <button onclick="getLocalUrl()" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-r-md transition duration-200">
+                使用本页
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-  <div class="card shadow m-3"> 
-   <h5 class="card-header">其它说明</h5> 
-   <div class="card-body"> 
-    <h5 class="card-title"></h5> 
-    <div class="input-group mb-3"> 
-     <iframe width="560" height="315" src="https://www.youtube.com/embed/F9re4Tuy7BA" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen=""></iframe> 
-    </div> 
-    <p>如果我的workers免费额度用完了, 你可以<a href="https://zelikk.blogspot.com/2023/06/gh-proxy-worker.html">自己在worker上搭gh-proxy.</a></p>
-    <p>你也可以<a href="https://zelikk.blogspot.com/2022/05/domain-cloudflare-worker-dev.html">在worker上套自己的域名</a>解决国内访问的问题. </p> 
-    <p>还有一个解决国内访问的方法, 利用Replit域名没有被墙, <a href="https://zelikk.blogspot.com/2023/07/replit-gh-proxy.html">在Replit上跑cloudflare的workers脚本 运行gh-proxy</a></p> 
-    <p>在Replit环境上搭的服务, <a href="https://zelikk.blogspot.com/2023/10/github-proxy-replit-wget-compression-auto.html">wget的用法要加上--compression=auto解决gzip压缩的问题</a></p>
+    <!-- 说明部分 -->
+    <div class="mt-6 bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+      <div class="bg-indigo-600 dark:bg-indigo-700 text-white px-4 py-3">
+        <h2 class="text-xl font-semibold">使用说明</h2>
+      </div>
+      <div class="p-4">
+        <div class="mb-4">
+          <h3 class="text-lg font-medium mb-2">支持的脚本格式</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
+            <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded">
+              <code class="text-sm">bash <(curl -L https://github.com/crazypeace/warp.sh/raw/main/warp.sh) 4</code>
+            </div>
+            <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded">
+              <code class="text-sm">bash <(wget -qO- -o- https://git.io/v2ray.sh)</code>
+            </div>
+            <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded">
+              <code class="text-sm">wget -O tcpx.sh "https://git.io/JYxKU" && chmod +x tcpx.sh && ./tcpx.sh</code>
+            </div>
+            <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded">
+              <code class="text-sm">wget -N --no-check-certificate https://raw.githubusercontent.com/Misaka-blog/hysteria-install/main/hy2/hysteria.sh && bash hysteria.sh</code>
+            </div>
+          </div>
+        </div>
+        
+        <div class="mb-4">
+          <h3 class="text-lg font-medium mb-2">教程视频</h3>
+          <div class="aspect-w-16 aspect-h-9">
+            <iframe class="rounded-lg w-full" style="aspect-ratio: 16/9;" src="https://www.youtube.com/embed/F9re4Tuy7BA" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+          </div>
+        </div>
+        
+        <div class="space-y-2 text-sm">
+          <p>如果我的 workers 免费额度用完了，你可以<a href="https://zelikk.blogspot.com/2023/06/gh-proxy-worker.html" class="text-indigo-600 dark:text-indigo-400 hover:underline">自己在 worker 上搭 gh-proxy</a>。</p>
+          <p>你也可以<a href="https://zelikk.blogspot.com/2022/05/domain-cloudflare-worker-dev.html" class="text-indigo-600 dark:text-indigo-400 hover:underline">在 worker 上套自己的域名</a>解决国内访问的问题。</p>
+          <p>还有一个解决国内访问的方法，利用 Replit 域名没有被墙，<a href="https://zelikk.blogspot.com/2023/07/replit-gh-proxy.html" class="text-indigo-600 dark:text-indigo-400 hover:underline">在 Replit 上跑 cloudflare 的 workers 脚本运行 gh-proxy</a>。</p>
+          <p>在 Replit 环境上搭的服务，<a href="https://zelikk.blogspot.com/2023/10/github-proxy-replit-wget-compression-auto.html" class="text-indigo-600 dark:text-indigo-400 hover:underline">wget 的用法要加上 --compression=auto 解决 gzip 压缩的问题</a>。</p>
+        </div>
+      </div>
+    </div>
 
-    <label>高级参数 (不懂就不要动)</label> 
-    <div class="input-group mb-3"> 
-     <span class="input-group-text">Github Proxy</span> 
-     <input type="text" class="form-control" id="ghproxy" aria-describedby="basic-addon3" value="https://ghproxy.crazypeace.workers.dev/" /> 
-     <button class="btn btn-info" type="button" onclick="getLocalUrl()" id="localUrlBtn">使用本页</button> 
-    </div> 
-   </div> 
-  </div> 
+    <footer class="mt-8 text-center text-sm text-gray-600 dark:text-gray-400">
+      <p>© 2025 GitHub 代理工具 | <a href="https://github.com/crazypeace/gh-proxy/" class="text-indigo-600 dark:text-indigo-400 hover:underline">GitHub 仓库</a></p>
+    </footer>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script> 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script> 
-  <script src="./main.js"></script>  
- </body>
+  <script src="./main.js"></script>
+</body>
 </html>
