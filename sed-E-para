@@ -1,1 +1,0 @@
-s#(curl.*\.sh)([^/])#\1 | sed -E "$(curl -L https://github.com/crazypeace/gh-proxy/raw/master/sed-E-para)" \2#g; s#(http.*github[^/]*/)#https://github.crazypeace.workers.dev/\1#g
