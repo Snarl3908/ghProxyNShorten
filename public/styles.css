@@ -24,6 +24,7 @@ code {
   font-family: 'Fira Code', 'Source Code Pro', Menlo, Monaco, Consolas, 'Courier New', monospace;
   font-size: 0.9rem;
   line-height: 1.5;
+  color: #374151;
 }
 
 /* 动画效果 */
@@ -39,29 +40,18 @@ button:active {
   transform: translateY(1px);
 }
 
-/* 暗黑模式增强 */
-@media (prefers-color-scheme: dark) {
-  /* 输入框暗色模式 */
-  input {
-    color: #e2e8f0;
-    background-color: #374151;
-    border-color: #4b5563;
-  }
-  
-  /* 链接暗色模式 */
-  a:hover {
-    color: #93c5fd;
-  }
-  
-  /* 代码块暗色模式 */
-  code {
-    color: #e2e8f0;
-  }
-  
-  /* 卡片阴影增强 */
-  .shadow-md {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
-  }
+/* 卡片阴影增强 */
+.shadow-md {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* 链接样式 */
+a {
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  text-decoration: underline;
 }
 
 /* 响应式调整 */
