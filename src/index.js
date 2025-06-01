@@ -128,27 +128,12 @@ async function getOriginalUrl(shortCode, kv) {
 }
 
 /**
- * 检查URL是否符合GitHub相关格式
+ * 验证URL是否符合GitHub相关格式（使用正则测试）
  * @param {string} url 要检查的URL
  * @returns {boolean} 是否为有效的GitHub URL
  */
-function checkUrl(url) {
-    // 使用与前端相同的正则表达式验证
-    const exp1 = /^(?:https?:\/\/)?github\.com\/.+?\/.+?\/(?:releases|archive)\/.*$/i;
-    const exp2 = /^(?:https?:\/\/)?github\.com\/.+?\/.+?\/(?:blob|raw)\/.*$/i;
-    const exp3 = /^(?:https?:\/\/)?github\.com\/.+?\/.+?\/(?:info|git-).*$/i;
-    const exp4 = /^(?:https?:\/\/)?raw\.(?:githubusercontent|github)\.com\/.+?\/.+?\/.+?\/.+$/i;
-    const exp5 = /^(?:https?:\/\/)?gist\.(?:githubusercontent|github)\.com\/.+?\/.+?\/.+$/i;
-    const exp6 = /^(?:https?:\/\/)?github\.com\/.+?\/.+?\/tags.*$/i;
-    const exp7 = /^(?:https?:\/\/)?api\.github\.com\/.*$/i;
-    const exp8 = /^(?:https?:\/\/)?git\.io\/.*$/i;
-    const exp9 = /^(?:https?:\/\/)?gitlab\.com\/.*$/i;
-    
-    return (
-        exp1.test(url) || exp2.test(url) || exp3.test(url) || 
-        exp4.test(url) || exp5.test(url) || exp6.test(url) || 
-        exp7.test(url) || exp8.test(url) || exp9.test(url)
-    );
+function validateGitHubUrl(url) {
+    return checkUrl(url);
 }
 
 /**
@@ -231,7 +216,7 @@ async function fetchHandler(e) {
             const url = body.url;
             
             // 验证URL
-            if (!url || !checkUrl(url)) {
+            if (!url || !validateGitHubUrl(url)) {
                 return new Response(JSON.stringify({
                     error: '不支持的URL格式'
                 }), {
@@ -320,7 +305,7 @@ async function fetchHandler(e) {
             const results = [];
             for (const url of urls) {
                 // 验证URL
-                if (!url || !checkUrl(url)) {
+                if (!url || !validateGitHubUrl(url)) {
                     results.push({
                         originalUrl: url,
                         error: '不支持的URL格式',
