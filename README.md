@@ -1,6 +1,6 @@
 # GitHub Proxy & Shortener
 
-一个现代化的 GitHub 代理工具，帮助解决纯 IPv6 环境下访问 GitHub 资源的问题，并提供脚本命令转换功能。
+一个现代化的 GitHub 代理工具，帮助解决纯 IPv6 环境下访问 GitHub 资源的问题，提供脚本命令转换功能，并支持 GitHub 资源短链接生成。
 
 ## 简介
 
@@ -9,6 +9,7 @@ GitHub Proxy & Shortener 是一个基于 Cloudflare Workers 的工具，用于�
 - 在纯 IPv6 的 VPS 上运行 GitHub 脚本时无法访问 GitHub 的问题
 - 需要通过代理访问 GitHub 资源的场景
 - 简化 GitHub 一键脚本的使用
+- 将长的 GitHub URL 转换为短链接，便于分享和使用
 
 本项目是对 [hunshcn/gh-proxy](https://github.com/hunshcn/gh-proxy) 的改进和扩展，增加了更友好的用户界面和更多功能支持。
 
@@ -18,6 +19,11 @@ GitHub Proxy & Shortener 是一个基于 Cloudflare Workers 的工具，用于�
   - 支持处理一层脚本中的 GitHub 资源
   - 支持处理嵌套调用其它 GitHub 脚本的情况
 - **资源链接转换**：将 GitHub 资源链接转换为代理链接
+- **GitHub 短链接**：将长的 GitHub URL 转换为短链接
+  - 短链接直接返回代理内容，无需重定向，适合脚本和终端使用
+  - 支持单个和批量 URL 处理（最多 50 个）
+  - 内置速率限制和 URL 验证机制
+  - 短链接访问统计和过期机制（默认 1 年）
 - **支持多种资源类型**：
   - GitHub Releases 和 Archives
   - Raw 文件内容
@@ -37,7 +43,7 @@ GitHub Proxy & Shortener 是一个基于 Cloudflare Workers 的工具，用于�
    ```
    bash <(curl -L https://github.com/crazypeace/warp.sh/raw/main/warp.sh) 4
    ```
-3. 点击"转换脚本"按钮
+3. 点击“转换脚本”按钮
 4. 根据需要选择合适的转换结果：
    - 只处理一层脚本中 GitHub 资源
    - 处理嵌套调用的情况
@@ -50,8 +56,26 @@ GitHub Proxy & Shortener 是一个基于 Cloudflare Workers 的工具，用于�
    ```
    https://github.com/crazypeace/warp.sh/raw/main/warp.sh
    ```
-3. 点击"转换资源"按钮
-4. 复制转换后的链接或直接点击"获取"按钮
+3. 点击“转换资源”按钮
+4. 复制转换后的链接或直接点击“获取”按钮
+
+### GitHub 短链接生成
+
+1. 访问工具页面，切换到“短链接”选项卡
+2. 输入 GitHub URL，例如：
+   ```
+   https://github.com/Snarl3908/ghProxyNShorten/blob/main/README.md
+   ```
+3. 点击“生成短链接”按钮
+4. 复制生成的短链接
+
+### 批量短链接生成
+
+1. 访问工具页面，切换到“短链接”选项卡
+2. 点击“批量模式”按钮
+3. 在文本框中输入多个 GitHub URL，每行一个（最多 50 个）
+4. 点击“批量生成”按钮
+5. 复制生成的短链接或导出为 CSV 文件
 
 ### 支持的脚本格式
 
