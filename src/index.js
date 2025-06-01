@@ -79,10 +79,9 @@ function generateShortCode(length = 6) {
  * 存储短链接映射
  * @param {string} shortCode 短码
  * @param {string} originalUrl 原始URL
- * @param {KVNamespace} kv KV存储实例
  * @returns {Promise<string>} 短码
  */
-async function storeShortUrl(shortCode, originalUrl, kv) {
+async function storeShortUrl(shortCode, originalUrl) {
     const key = `shorturl:${shortCode}`;
     const data = {
         url: originalUrl,
@@ -91,10 +90,16 @@ async function storeShortUrl(shortCode, originalUrl, kv) {
         lastAccessed: null
     };
     
-    // 存储到KV，设置1年过期时间
-    await kv.put(key, JSON.stringify(data), {
-        expirationTtl: 31536000 // 1年，单位秒
+    // 使用Cloudflare Workers缓存API存储数据
+    const cache = caches.default;
+    const response = new Response(JSON.stringify(data), {
+        headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'max-age=31536000' // 1年缓存
+        }
     });
+    
+    await cache.put(new Request(`https://internal.shorturl/${key}`), response);
     
     return shortCode;
 }
@@ -102,27 +107,35 @@ async function storeShortUrl(shortCode, originalUrl, kv) {
 /**
  * 获取短链接对应的原始URL
  * @param {string} shortCode 短码
- * @param {KVNamespace} kv KV存储实例
  * @returns {Promise<string|null>} 原始URL或null
  */
-async function getOriginalUrl(shortCode, kv) {
+async function getOriginalUrl(shortCode) {
     const key = `shorturl:${shortCode}`;
-    const dataStr = await kv.get(key);
+    const cache = caches.default;
     
-    if (!dataStr) {
+    // 从缓存中获取数据
+    const cacheResponse = await cache.match(new Request(`https://internal.shorturl/${key}`));
+    
+    if (!cacheResponse) {
         return null; // 短链接不存在
     }
     
+    const dataStr = await cacheResponse.text();
     const data = JSON.parse(dataStr);
     
-    // 更新访问计数和最后访问时间
+    // 更新访问计数和最后访问旲间
     data.accessCount += 1;
     data.lastAccessed = Date.now();
     
-    // 异步更新KV中的数据
-    kv.put(key, JSON.stringify(data), {
-        expirationTtl: 31536000 // 重置过期时间
+    // 异步更新缓存中的数据
+    const updatedResponse = new Response(JSON.stringify(data), {
+        headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'max-age=31536000' // 1年缓存
+        }
     });
+    
+    cache.put(new Request(`https://internal.shorturl/${key}`), updatedResponse);
     
     return data.url;
 }
@@ -139,19 +152,19 @@ function validateGitHubUrl(url) {
 /**
  * 检查速率限制
  * @param {string} ip 客户端IP
- * @param {KVNamespace} kv KV存储实例
  * @returns {Promise<boolean>} 是否允许请求
  */
-async function checkRateLimit(ip, kv) {
+async function checkRateLimit(ip) {
     const minuteKey = `ratelimit:${ip}:minute:${Math.floor(Date.now() / 60000)}`;
     const hourKey = `ratelimit:${ip}:hour:${Math.floor(Date.now() / 3600000)}`;
+    const cache = caches.default;
     
     // 获取当前计数
-    const minuteCountStr = await kv.get(minuteKey);
-    const hourCountStr = await kv.get(hourKey);
+    const minuteResponse = await cache.match(new Request(`https://internal.ratelimit/${minuteKey}`));
+    const hourResponse = await cache.match(new Request(`https://internal.ratelimit/${hourKey}`));
     
-    const minuteCount = minuteCountStr ? parseInt(minuteCountStr) : 0;
-    const hourCount = hourCountStr ? parseInt(hourCountStr) : 0;
+    const minuteCount = minuteResponse ? parseInt(await minuteResponse.text()) : 0;
+    const hourCount = hourResponse ? parseInt(await hourResponse.text()) : 0;
     
     // 检查是否超出限制
     if (minuteCount >= 10) { // 每分钟10个请求
@@ -163,8 +176,15 @@ async function checkRateLimit(ip, kv) {
     }
     
     // 更新计数
-    await kv.put(minuteKey, (minuteCount + 1).toString(), { expirationTtl: 60 });
-    await kv.put(hourKey, (hourCount + 1).toString(), { expirationTtl: 3600 });
+    const minuteResp = new Response((minuteCount + 1).toString(), {
+        headers: { 'Cache-Control': 'max-age=60' } // 1分钟过期
+    });
+    const hourResp = new Response((hourCount + 1).toString(), {
+        headers: { 'Cache-Control': 'max-age=3600' } // 1小时过期
+    });
+    
+    await cache.put(new Request(`https://internal.ratelimit/${minuteKey}`), minuteResp);
+    await cache.put(new Request(`https://internal.ratelimit/${hourKey}`), hourResp);
     
     return true;
 }
@@ -179,23 +199,11 @@ async function fetchHandler(e) {
     
     console.log("in:" +urlStr)
 
-    // 获取KV存储
-    const kv = e.env ? (e.env.ASSETS || e.env.KV) : null;
-    
-    if (!kv) {
-        console.error('KV storage not available');
-        // 继续执行，但短链接功能将不可用
-    }
-
     // 处理短链接访问
     if (urlObj.pathname.startsWith('/s/')) {
-        if (!kv) {
-            return new Response('KV storage not available', { status: 500 });
-        }
-        
         const shortCode = urlObj.pathname.slice(3); // 移除'/s/'前缀
         
-        const originalUrl = await getOriginalUrl(shortCode, kv);
+        const originalUrl = await getOriginalUrl(shortCode);
         if (!originalUrl) {
             return new Response('Short link not found', { status: 404 });
         }
@@ -206,19 +214,11 @@ async function fetchHandler(e) {
     
     // 处理生成短链接的API
     if (urlObj.pathname === '/api/shorten' && req.method === 'POST') {
-        if (!kv) {
-            return new Response(JSON.stringify({
-                error: 'KV storage not available'
-            }), { 
-                status: 500,
-                headers: { 'Content-Type': 'application/json' }
-            });
-        }
         // 获取客户端IP
         const clientIP = req.headers.get('CF-Connecting-IP') || '0.0.0.0';
         
         // 检查速率限制
-        const allowed = await checkRateLimit(clientIP, kv);
+        const allowed = await checkRateLimit(clientIP);
         if (!allowed) {
             return new Response(JSON.stringify({
                 error: '请求过于频繁，请稍后再试'
@@ -248,14 +248,14 @@ async function fetchHandler(e) {
             // 检查短码是否已存在，如果存在则重新生成
             let attempts = 0;
             while (attempts < 5) {
-                const exists = await kv.get(`shorturl:${shortCode}`);
+                const exists = await getOriginalUrl(shortCode);
                 if (!exists) break;
                 shortCode = generateShortCode();
                 attempts++;
             }
             
             // 存储映射
-            await storeShortUrl(shortCode, url, kv);
+            await storeShortUrl(shortCode, url);
             
             // 返回结果
             return new Response(JSON.stringify({
@@ -281,19 +281,11 @@ async function fetchHandler(e) {
     
     // 处理批量生成短链接的API
     if (urlObj.pathname === '/api/shorten-bulk' && req.method === 'POST') {
-        if (!kv) {
-            return new Response(JSON.stringify({
-                error: 'KV storage not available'
-            }), { 
-                status: 500,
-                headers: { 'Content-Type': 'application/json' }
-            });
-        }
         // 获取客户端IP
         const clientIP = req.headers.get('CF-Connecting-IP') || '0.0.0.0';
         
         // 检查速率限制
-        const allowed = await checkRateLimit(clientIP, kv);
+        const allowed = await checkRateLimit(clientIP);
         if (!allowed) {
             return new Response(JSON.stringify({
                 error: '请求过于频繁，请稍后再试'
@@ -345,14 +337,14 @@ async function fetchHandler(e) {
                 // 检查短码是否已存在
                 let attempts = 0;
                 while (attempts < 3) {
-                    const exists = await kv.get(`shorturl:${shortCode}`);
+                    const exists = await getOriginalUrl(shortCode);
                     if (!exists) break;
                     shortCode = generateShortCode();
                     attempts++;
                 }
                 
                 // 存储映射
-                await storeShortUrl(shortCode, url, kv);
+                await storeShortUrl(shortCode, url);
                 
                 results.push({
                     originalUrl: url,
