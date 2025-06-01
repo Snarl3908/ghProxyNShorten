@@ -180,10 +180,19 @@ async function fetchHandler(e) {
     console.log("in:" +urlStr)
 
     // 获取KV存储
-    const kv = e.env.SHORTENER || e.env.KV || e.env.ASSETS;
+    const kv = e.env ? (e.env.ASSETS || e.env.KV) : null;
+    
+    if (!kv) {
+        console.error('KV storage not available');
+        // 继续执行，但短链接功能将不可用
+    }
 
     // 处理短链接访问
     if (urlObj.pathname.startsWith('/s/')) {
+        if (!kv) {
+            return new Response('KV storage not available', { status: 500 });
+        }
+        
         const shortCode = urlObj.pathname.slice(3); // 移除'/s/'前缀
         
         const originalUrl = await getOriginalUrl(shortCode, kv);
@@ -197,6 +206,14 @@ async function fetchHandler(e) {
     
     // 处理生成短链接的API
     if (urlObj.pathname === '/api/shorten' && req.method === 'POST') {
+        if (!kv) {
+            return new Response(JSON.stringify({
+                error: 'KV storage not available'
+            }), { 
+                status: 500,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
         // 获取客户端IP
         const clientIP = req.headers.get('CF-Connecting-IP') || '0.0.0.0';
         
@@ -264,6 +281,14 @@ async function fetchHandler(e) {
     
     // 处理批量生成短链接的API
     if (urlObj.pathname === '/api/shorten-bulk' && req.method === 'POST') {
+        if (!kv) {
+            return new Response(JSON.stringify({
+                error: 'KV storage not available'
+            }), { 
+                status: 500,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
         // 获取客户端IP
         const clientIP = req.headers.get('CF-Connecting-IP') || '0.0.0.0';
         
