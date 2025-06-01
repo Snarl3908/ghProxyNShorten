@@ -62,6 +62,129 @@ function checkUrl(u) {
 }
 
 /**
+ * 生成短链接的随机码
+ * @param {number} length 短链接长度
+ * @returns {string} 生成的短码
+ */
+function generateShortCode(length = 6) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+}
+
+/**
+ * 存储短链接映射
+ * @param {string} shortCode 短码
+ * @param {string} originalUrl 原始URL
+ * @param {KVNamespace} kv KV存储实例
+ * @returns {Promise<string>} 短码
+ */
+async function storeShortUrl(shortCode, originalUrl, kv) {
+    const key = `shorturl:${shortCode}`;
+    const data = {
+        url: originalUrl,
+        created: Date.now(),
+        accessCount: 0,
+        lastAccessed: null
+    };
+    
+    // 存储到KV，设置1年过期时间
+    await kv.put(key, JSON.stringify(data), {
+        expirationTtl: 31536000 // 1年，单位秒
+    });
+    
+    return shortCode;
+}
+
+/**
+ * 获取短链接对应的原始URL
+ * @param {string} shortCode 短码
+ * @param {KVNamespace} kv KV存储实例
+ * @returns {Promise<string|null>} 原始URL或null
+ */
+async function getOriginalUrl(shortCode, kv) {
+    const key = `shorturl:${shortCode}`;
+    const dataStr = await kv.get(key);
+    
+    if (!dataStr) {
+        return null; // 短链接不存在
+    }
+    
+    const data = JSON.parse(dataStr);
+    
+    // 更新访问计数和最后访问时间
+    data.accessCount += 1;
+    data.lastAccessed = Date.now();
+    
+    // 异步更新KV中的数据
+    kv.put(key, JSON.stringify(data), {
+        expirationTtl: 31536000 // 重置过期时间
+    });
+    
+    return data.url;
+}
+
+/**
+ * 检查URL是否符合GitHub相关格式
+ * @param {string} url 要检查的URL
+ * @returns {boolean} 是否为有效的GitHub URL
+ */
+function checkUrl(url) {
+    // 使用与前端相同的正则表达式验证
+    const exp1 = /^(?:https?:\/\/)?github\.com\/.+?\/.+?\/(?:releases|archive)\/.*$/i;
+    const exp2 = /^(?:https?:\/\/)?github\.com\/.+?\/.+?\/(?:blob|raw)\/.*$/i;
+    const exp3 = /^(?:https?:\/\/)?github\.com\/.+?\/.+?\/(?:info|git-).*$/i;
+    const exp4 = /^(?:https?:\/\/)?raw\.(?:githubusercontent|github)\.com\/.+?\/.+?\/.+?\/.+$/i;
+    const exp5 = /^(?:https?:\/\/)?gist\.(?:githubusercontent|github)\.com\/.+?\/.+?\/.+$/i;
+    const exp6 = /^(?:https?:\/\/)?github\.com\/.+?\/.+?\/tags.*$/i;
+    const exp7 = /^(?:https?:\/\/)?api\.github\.com\/.*$/i;
+    const exp8 = /^(?:https?:\/\/)?git\.io\/.*$/i;
+    const exp9 = /^(?:https?:\/\/)?gitlab\.com\/.*$/i;
+    
+    return (
+        exp1.test(url) || exp2.test(url) || exp3.test(url) || 
+        exp4.test(url) || exp5.test(url) || exp6.test(url) || 
+        exp7.test(url) || exp8.test(url) || exp9.test(url)
+    );
+}
+
+/**
+ * 检查速率限制
+ * @param {string} ip 客户端IP
+ * @param {KVNamespace} kv KV存储实例
+ * @returns {Promise<boolean>} 是否允许请求
+ */
+async function checkRateLimit(ip, kv) {
+    const minuteKey = `ratelimit:${ip}:minute:${Math.floor(Date.now() / 60000)}`;
+    const hourKey = `ratelimit:${ip}:hour:${Math.floor(Date.now() / 3600000)}`;
+    
+    // 获取当前计数
+    const minuteCountStr = await kv.get(minuteKey);
+    const hourCountStr = await kv.get(hourKey);
+    
+    const minuteCount = minuteCountStr ? parseInt(minuteCountStr) : 0;
+    const hourCount = hourCountStr ? parseInt(hourCountStr) : 0;
+    
+    // 检查是否超出限制
+    if (minuteCount >= 10) { // 每分钟10个请求
+        return false;
+    }
+    
+    if (hourCount >= 100) { // 每小时100个请求
+        return false;
+    }
+    
+    // 更新计数
+    await kv.put(minuteKey, (minuteCount + 1).toString(), { expirationTtl: 60 });
+    await kv.put(hourKey, (hourCount + 1).toString(), { expirationTtl: 3600 });
+    
+    return true;
+}
+
+/**
  * @param {FetchEvent} e
  */
 async function fetchHandler(e) {
@@ -70,6 +193,195 @@ async function fetchHandler(e) {
     const urlObj = new URL(urlStr)
     
     console.log("in:" +urlStr)
+
+    // 获取KV存储
+    const kv = e.env.SHORTENER || e.env.KV || e.env.ASSETS;
+
+    // 处理短链接访问
+    if (urlObj.pathname.startsWith('/s/')) {
+        const shortCode = urlObj.pathname.slice(3); // 移除'/s/'前缀
+        
+        const originalUrl = await getOriginalUrl(shortCode, kv);
+        if (!originalUrl) {
+            return new Response('Short link not found', { status: 404 });
+        }
+        
+        // 使用原始URL，通过现有代理逻辑获取内容
+        return httpHandler(req, originalUrl);
+    }
+    
+    // 处理生成短链接的API
+    if (urlObj.pathname === '/api/shorten' && req.method === 'POST') {
+        // 获取客户端IP
+        const clientIP = req.headers.get('CF-Connecting-IP') || '0.0.0.0';
+        
+        // 检查速率限制
+        const allowed = await checkRateLimit(clientIP, kv);
+        if (!allowed) {
+            return new Response(JSON.stringify({
+                error: '请求过于频繁，请稍后再试'
+            }), { 
+                status: 429,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+        
+        try {
+            const body = await req.json();
+            const url = body.url;
+            
+            // 验证URL
+            if (!url || !checkUrl(url)) {
+                return new Response(JSON.stringify({
+                    error: '不支持的URL格式'
+                }), {
+                    status: 400,
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            }
+            
+            // 生成短码
+            let shortCode = generateShortCode();
+            
+            // 检查短码是否已存在，如果存在则重新生成
+            let attempts = 0;
+            while (attempts < 5) {
+                const exists = await kv.get(`shorturl:${shortCode}`);
+                if (!exists) break;
+                shortCode = generateShortCode();
+                attempts++;
+            }
+            
+            // 存储映射
+            await storeShortUrl(shortCode, url, kv);
+            
+            // 返回结果
+            return new Response(JSON.stringify({
+                originalUrl: url,
+                shortUrl: `${urlObj.origin}/s/${shortCode}`
+            }), {
+                status: 200,
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                }
+            });
+        } catch (error) {
+            console.error('Error processing shorten request:', error);
+            return new Response(JSON.stringify({
+                error: '处理请求失败'
+            }), {
+                status: 500,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+    }
+    
+    // 处理批量生成短链接的API
+    if (urlObj.pathname === '/api/shorten-bulk' && req.method === 'POST') {
+        // 获取客户端IP
+        const clientIP = req.headers.get('CF-Connecting-IP') || '0.0.0.0';
+        
+        // 检查速率限制
+        const allowed = await checkRateLimit(clientIP, kv);
+        if (!allowed) {
+            return new Response(JSON.stringify({
+                error: '请求过于频繁，请稍后再试'
+            }), { 
+                status: 429,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+        
+        try {
+            const body = await req.json();
+            const urls = body.urls || [];
+            
+            // 验证URL数量
+            if (!urls.length) {
+                return new Response(JSON.stringify({
+                    error: '请提供至少一个URL'
+                }), {
+                    status: 400,
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            }
+            
+            if (urls.length > 50) {
+                return new Response(JSON.stringify({
+                    error: '一次最多处理50个URL'
+                }), {
+                    status: 400,
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            }
+            
+            // 处理每个URL
+            const results = [];
+            for (const url of urls) {
+                // 验证URL
+                if (!url || !checkUrl(url)) {
+                    results.push({
+                        originalUrl: url,
+                        error: '不支持的URL格式',
+                        status: 'error'
+                    });
+                    continue;
+                }
+                
+                // 生成短码
+                let shortCode = generateShortCode();
+                
+                // 检查短码是否已存在
+                let attempts = 0;
+                while (attempts < 3) {
+                    const exists = await kv.get(`shorturl:${shortCode}`);
+                    if (!exists) break;
+                    shortCode = generateShortCode();
+                    attempts++;
+                }
+                
+                // 存储映射
+                await storeShortUrl(shortCode, url, kv);
+                
+                results.push({
+                    originalUrl: url,
+                    shortUrl: `${urlObj.origin}/s/${shortCode}`,
+                    status: 'success'
+                });
+            }
+            
+            // 返回结果
+            return new Response(JSON.stringify(results), {
+                status: 200,
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                }
+            });
+        } catch (error) {
+            console.error('Error processing bulk shorten request:', error);
+            return new Response(JSON.stringify({
+                error: '处理请求失败'
+            }), {
+                status: 500,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+    }
+    
+    // 处理OPTIONS请求（CORS预检请求）
+    if (req.method === 'OPTIONS') {
+        return new Response(null, {
+            status: 204,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Max-Age': '86400'
+            }
+        });
+    }
 
     let path = urlObj.searchParams.get('q')
     if (path) {

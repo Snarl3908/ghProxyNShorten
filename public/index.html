@@ -14,7 +14,7 @@
       <p class="text-gray-600 mt-2">解决纯 IPv6 的 VPS 运行 GitHub 脚本时访问 GitHub 不通的问题</p>
     </header>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
       <!-- 脚本转换卡片 -->
       <div class="bg-white rounded-lg shadow-md overflow-hidden">
         <div class="bg-indigo-600 text-white px-4 py-3">
@@ -97,8 +97,49 @@
       </div>
     </div>
 
+    <!-- GitHub链接缩短功能 -->
+    <div class="bg-white rounded-lg shadow-md overflow-hidden mb-6">
+      <div class="bg-indigo-600 text-white px-4 py-3">
+        <h2 class="text-xl font-semibold">GitHub 链接缩短</h2>
+      </div>
+      <div class="p-4">
+        <!-- 模式切换 -->
+        <div class="flex mb-4">
+          <button id="singleModeBtn" class="px-3 py-1 bg-indigo-600 text-white rounded-l-md">单链接</button>
+          <button id="bulkModeBtn" class="px-3 py-1 bg-gray-300 rounded-r-md">批量链接</button>
+        </div>
+        
+        <!-- 单链接模式 -->
+        <div id="singleMode">
+          <div class="mb-4">
+            <label for="longUrl" class="block text-sm font-medium mb-1">输入 GitHub 资源链接</label>
+            <input type="text" id="longUrl" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" 
+              placeholder="例如 https://github.com/username/repo/raw/main/file.sh">
+          </div>
+          <button onclick="generateShortUrl()" class="mb-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            生成短链接
+          </button>
+        </div>
+        
+        <!-- 批量模式 -->
+        <div id="bulkMode" class="hidden">
+          <div class="mb-4">
+            <label for="bulkUrls" class="block text-sm font-medium mb-1">输入多个 GitHub 链接（每行一个）</label>
+            <textarea id="bulkUrls" rows="5" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" 
+              placeholder="每行输入一个GitHub链接"></textarea>
+          </div>
+          <button onclick="generateBulkShortUrls()" class="mb-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            批量生成短链接
+          </button>
+        </div>
+        
+        <!-- 结果区域 -->
+        <div id="resultArea" class="mt-4 hidden"></div>
+      </div>
+    </div>
+    
     <!-- 说明部分 -->
-    <div class="mt-6 bg-white rounded-lg shadow-md overflow-hidden">
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
       <div class="bg-indigo-600 text-white px-4 py-3">
         <h2 class="text-xl font-semibold">使用说明</h2>
       </div>
